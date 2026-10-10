@@ -1,0 +1,10 @@
+# kube-prometheus-stack 的实验参数。
+# helm install kube-prometheus prometheus-community/kube-prometheus-stack -n monitoring --create-namespace -f deploy/observability/kube-prometheus-values.yaml
+grafana:
+  adminPassword: admin
+
+prometheus:
+  prometheusSpec:
+    # 选中集群里全部 ServiceMonitor，包括 deploy/k8s/monitoring 里的两份。
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false

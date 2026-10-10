@@ -1,0 +1,56 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+test:
+  stage: test
+  image: golang:1.22
+  script:
+    - go test ./pkg/platform/
+    - go test ./apps/telemetry-api/...
+    - go test ./apps/control-api/...
+    - go test ./tools/tbox-simulator/
+
+build:
+  stage: build
+  image: docker:26
+  services:
+    - docker:26-dind
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -f apps/telemetry-api/Dockerfile -t "$CI_REGISTRY_IMAGE/telemetry-api:$CI_COMMIT_SHORT_SHA" .
+    - docker build -f apps/control-api/Dockerfile -t "$CI_REGISTRY_IMAGE/control-api:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE/telemetry-api:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/control-api:$CI_COMMIT_SHORT_SHA"
+
+# 手动部署。需要 CI 变量 KUBE_CONFIG（base64 的 kubeconfig）、MYSQL_DSN、REDIS_PASSWORD、REDIS_ADDR、REDIS_TLS。
+deploy:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:1.30
+    entrypoint: [""]
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - mkdir -p "$HOME/.kube"
+    - echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+    - |
+      cat > deploy/k8s/overlays/prod/secret.env <<EOF
+      MYSQL_DSN=${MYSQL_DSN}
+      REDIS_PASSWORD=${REDIS_PASSWORD}
+      EOF
+    - sed -i "s#registry.example.com/vehicle-cloud#${CI_REGISTRY_IMAGE}#g" deploy/k8s/overlays/prod/kustomization.yaml
+    - sed -i "s#newTag: \"0.1.0\"#newTag: \"${CI_COMMIT_SHORT_SHA}\"#g" deploy/k8s/overlays/prod/kustomization.yaml
+    - sed -i "s#REDIS_ADDR=.*#REDIS_ADDR=${REDIS_ADDR}#" deploy/k8s/overlays/prod/kustomization.yaml
+    - sed -i "s#REDIS_TLS=.*#REDIS_TLS=${REDIS_TLS}#" deploy/k8s/overlays/prod/kustomization.yaml
+    - kubectl apply -k deploy/k8s/overlays/prod
+    - kubectl -n vehicle-cloud rollout status deployment/telemetry-api --timeout=180s
+    - kubectl -n vehicle-cloud rollout status deployment/control-api --timeout=180s

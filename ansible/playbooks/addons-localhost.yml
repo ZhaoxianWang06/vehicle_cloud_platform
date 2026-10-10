@@ -1,0 +1,13 @@
+---
+# 在已经配好 kubectl 的机器上部署。kind 和 EKS 都走这里，不经过 kubeadm。
+- name: Apply manifests from this machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    k8s_overlay: local
+  tasks:
+    - name: apply overlay
+      ansible.builtin.command: "kubectl apply -k {{ playbook_dir }}/../../deploy/k8s/overlays/{{ k8s_overlay }}"
+      changed_when: true

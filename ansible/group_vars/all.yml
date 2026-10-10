@@ -1,0 +1,6 @@
+timezone: Asia/Shanghai
+k8s_minor: "v1.31"
+pod_network_cidr: "10.244.0.0/16"
+flannel_manifest: "https://github.com/flannel-io/flannel/releases/download/v0.25.5/kube-flannel.yml"
+ingress_nginx_manifest: "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.3/deploy/static/provider/baremetal/deploy.yaml"
+k8s_overlay: local

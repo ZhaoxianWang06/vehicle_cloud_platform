@@ -1,0 +1,62 @@
+groups:
+  - name: vehicle-recording
+    rules:
+      - record: vehicle:telemetry_qps:rate1m
+        expr: sum(rate(vehicle_telemetry_ingest_total[1m])) by (result)
+      - record: vehicle:command_qps:rate1m
+        expr: sum(rate(vehicle_command_total[1m])) by (command, result)
+
+  - name: vehicle-cloud
+    rules:
+      - alert: TelemetryIngestFailing
+        expr: |
+          sum(rate(vehicle_telemetry_ingest_total{result="db_error"}[5m]))
+          /
+          clamp_min(sum(rate(vehicle_telemetry_ingest_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 车况入库失败率超过 5%
+      - alert: TelemetryLatencyHigh
+        expr: histogram_quantile(0.99, sum(rate(vehicle_telemetry_ingest_duration_seconds_bucket[5m])) by (le)) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 车况上报 P99 超过 500ms
+      - alert: ControlAPIDown
+        expr: up{job="control-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 车控 API 无法抓取
+      - alert: TelemetryAPIDown
+        expr: up{job="telemetry-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 车况 API 无法抓取
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: MySQL exporter 报告数据库不可用
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Redis exporter 报告缓存不可用
+      - alert: NginxDown
+        expr: nginx_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Nginx stub_status 不可用

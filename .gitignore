@@ -1,0 +1,17 @@
+.git
+.idea/
+.vscode/
+*.exe
+*.test
+bin/
+.env
+
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

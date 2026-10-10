@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Vehicle Cloud
+    orgId: 1
+    folder: Vehicle Cloud
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,62 @@
+---
+- name: This lab targets Debian family nodes
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "Debian"
+    fail_msg: "kubeadm 剧本面向 Ubuntu/Debian。云上托管集群走 Terraform，不要用这套剧本。"
+
+- name: Base packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - apt-transport-https
+      - socat
+      - conntrack
+      - jq
+    state: present
+    update_cache: true
+
+- name: Set timezone
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ timezone }}"
+    dest: /etc/localtime
+    state: link
+    force: true
+
+- name: Persist kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    mode: "0644"
+    content: |
+      overlay
+      br_netfilter
+
+- name: Load kernel modules
+  ansible.builtin.command: "modprobe {{ item }}"
+  loop:
+    - overlay
+    - br_netfilter
+  changed_when: false
+
+- name: Kubernetes sysctl
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-kubernetes.conf
+    mode: "0644"
+    content: |
+      net.ipv4.ip_forward = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+  notify: reload sysctl
+
+- name: Turn swap off
+  ansible.builtin.command: swapoff -a
+  when: (ansible_memory_mb.swap.total | default(0) | int) > 0
+  changed_when: true
+
+- name: Keep swap off across reboot
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\sswap\s+.*)$'
+    replace: '# \1'

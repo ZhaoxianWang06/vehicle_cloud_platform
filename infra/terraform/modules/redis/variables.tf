@@ -1,0 +1,9 @@
+variable "name" { type = string }
+variable "vpc_id" { type = string }
+variable "subnet_ids" { type = list(string) }
+variable "allowed_security_group_id" { type = string }
+variable "node_type" { type = string }
+variable "engine_version" { type = string }
+variable "num_cache_clusters" { type = number }
+variable "transit_encryption_enabled" { type = bool }
+variable "tags" { type = map(string) }

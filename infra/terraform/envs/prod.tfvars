@@ -1,0 +1,17 @@
+region                     = "ap-southeast-1"
+env                        = "prod"
+name                       = "vc-prod"
+nat_per_az                 = true
+k8s_version                = "1.31"
+node_instance_types        = ["t3.large"]
+node_desired               = 3
+node_min                   = 3
+node_max                   = 8
+db_instance_class          = "db.t3.medium"
+db_multi_az                = true
+db_backup_retention        = 7
+db_deletion_protection     = true
+skip_final_snapshot        = false
+redis_node_type            = "cache.t3.small"
+redis_replicas             = 2
+redis_transit_encryption   = true

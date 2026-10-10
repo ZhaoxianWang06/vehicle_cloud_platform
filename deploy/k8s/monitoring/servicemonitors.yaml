@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: telemetry-api
+  namespace: vehicle-cloud
+  labels:
+    app.kubernetes.io/part-of: vehicle-cloud
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: telemetry-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: control-api
+  namespace: vehicle-cloud
+  labels:
+    app.kubernetes.io/part-of: vehicle-cloud
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: control-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

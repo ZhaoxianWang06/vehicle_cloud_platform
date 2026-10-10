@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vehicle-cloud
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
+    nginx.ingress.kubernetes.io/limit-rps: "200"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vehicle.local
+      http:
+        paths:
+          - path: /api/v1/telemetry(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: telemetry-api
+                port:
+                  name: http
+          - path: /api/v1/commands(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: control-api
+                port:
+                  name: http
+          # 必须比下面的 vehicles 规则更长，ingress-nginx 按路径长度排序。
+          - path: /api/v1/vehicles/[^/]+/commands(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: control-api
+                port:
+                  name: http
+          - path: /api/v1/vehicles(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: telemetry-api
+                port:
+                  name: http

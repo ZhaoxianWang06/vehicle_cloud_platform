@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+replicas:
+  - name: telemetry-api
+    count: 3
+  - name: control-api
+    count: 3
+configMapGenerator:
+  - name: vehicle-config
+    literals:
+      - HTTP_ADDR=:8080
+      - REDIS_ADDR=replace-me:6379
+      - REDIS_DB=0
+      - REDIS_TLS=true
+secretGenerator:
+  - name: vehicle-data
+    envs:
+      - secret.env
+images:
+  - name: vehicle-cloud/telemetry-api
+    newName: registry.example.com/vehicle-cloud/telemetry-api
+    newTag: "0.1.0"
+  - name: vehicle-cloud/control-api
+    newName: registry.example.com/vehicle-cloud/control-api
+    newTag: "0.1.0"
+patches:
+  - target:
+      kind: Deployment
+      name: telemetry-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always
+  - target:
+      kind: Deployment
+      name: control-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always

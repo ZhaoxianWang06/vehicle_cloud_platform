@@ -1,0 +1,40 @@
+---
+- name: Kubernetes apt key
+  ansible.builtin.shell: |
+    set -euo pipefail
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL "https://pkgs.k8s.io/core:/stable:/{{ k8s_minor }}/deb/Release.key" | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    chmod a+r /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    executable: /bin/bash
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Kubernetes apt source
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/kubernetes.list
+    mode: "0644"
+    content: |
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ k8s_minor }}/deb/ /
+
+- name: Install kubeadm, kubelet and kubectl
+  ansible.builtin.apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: true
+
+- name: Hold Kubernetes packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: Enable kubelet
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
